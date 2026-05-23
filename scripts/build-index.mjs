@@ -74,7 +74,11 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>docs.vienthietke.com — Thư viện tài liệu</title>
+<meta name="theme-color" content="#042f23">
+<title>Sổ tay QN — docs.vienthietke.com</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <style>
 :root{--bg:#0b1020;--text:#f7f9ff;--muted:#b9c2d9;--blue:#7cc7ff;--cyan:#74f0d2;--violet:#c5a3ff;--shadow:0 18px 60px rgba(0,0,0,.35)}
 *{box-sizing:border-box}
@@ -103,6 +107,11 @@ h2 .count{padding:2px 8px;border-radius:999px;background:rgba(124,199,255,.14);c
 ${sections}
   <p class="footer">Tự sinh bởi <code>scripts/build-index.mjs</code> · ${new Date().toISOString().slice(0, 10)}</p>
 </div>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+  }
+</script>
 </body>
 </html>
 `;
@@ -110,3 +119,27 @@ ${sections}
 writeFileSync(OUTPUT, html);
 console.log(`✓ Wrote ${relative(ROOT, OUTPUT)} (${items.length} entries)`);
 for (const it of items) console.log(`  - ${it.rel}  — ${it.title}`);
+
+// === Cập nhật precache list trong sw.js ===
+const swPath = join(ROOT, 'sw.js');
+try {
+  const sw = readFileSync(swPath, 'utf8');
+  const precacheList = [
+    '/',
+    '/index.html',
+    '/manifest.webmanifest',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png',
+    '/icons/icon-maskable-512.png',
+    '/icons/apple-touch-icon.png',
+    ...items.map(it => '/' + it.rel),
+  ];
+  const block = `const PRECACHE_URLS = [\n${precacheList.map(u => `  '${u}',`).join('\n')}\n];`;
+  const newSw = sw.replace(/const PRECACHE_URLS = \[[\s\S]*?\];/, block);
+  if (newSw !== sw) {
+    writeFileSync(swPath, newSw);
+    console.log(`✓ Updated PRECACHE_URLS in sw.js (${precacheList.length} URLs)`);
+  }
+} catch (e) {
+  console.warn(`⚠ Skipped sw.js update: ${e.message}`);
+}
