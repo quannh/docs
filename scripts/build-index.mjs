@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Quét tất cả file .html trong repo, đọc <title>, sinh index.html ở root.
+// Quét tất cả file .html trong repo, đọc <title> + word count, sinh index.html.
+// Đồng thời cập nhật precache list trong sw.js.
 // Chạy: node scripts/build-index.mjs
 
 import { readdirSync, statSync, writeFileSync, readFileSync } from 'node:fs';
@@ -9,11 +10,17 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = join(ROOT, 'index.html');
 
-const IGNORE_DIRS = new Set(['.git', 'node_modules', 'scripts', '.github', '.vscode']);
+const IGNORE_DIRS = new Set(['.git', 'node_modules', 'scripts', '.github', '.vscode', 'assets', 'icons']);
 const EXCLUDE_PATHS = new Set([
   'docs/index.html',
   'docs/CNAME',
 ]);
+
+const FOLDER_LABELS = {
+  'vivo': 'Vivo X200',
+  'tiet-kiem-dau-tu': 'Tiết kiệm — Đầu tư',
+  '(gốc)': 'Khác',
+};
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
@@ -31,13 +38,45 @@ function walk(dir, out = []) {
   return out;
 }
 
-function extractTitle(absPath) {
-  try {
-    const html = readFileSync(absPath, 'utf8');
-    const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    if (m) return m[1].replace(/\s+/g, ' ').trim();
-  } catch {}
+function extractTitle(html) {
+  const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  if (m) return m[1].replace(/\s+/g, ' ').trim();
   return null;
+}
+
+function stripHtml(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&[a-z#0-9]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function wordCount(text) {
+  if (!text) return 0;
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
+function timeAgo(mtimeMs) {
+  const diff = Date.now() - mtimeMs;
+  const m = 60 * 1000;
+  const h = 60 * m;
+  const d = 24 * h;
+  if (diff < h) return 'vừa xong';
+  if (diff < d) return `${Math.floor(diff / h)}h trước`;
+  if (diff < 2 * d) return 'hôm qua';
+  if (diff < 7 * d) return `${Math.floor(diff / d)} ngày trước`;
+  if (diff < 30 * d) return `${Math.floor(diff / (7 * d))} tuần trước`;
+  if (diff < 365 * d) return `${Math.floor(diff / (30 * d))} tháng trước`;
+  return `${Math.floor(diff / (365 * d))} năm trước`;
+}
+
+function formatK(n) {
+  if (n >= 10000) return Math.round(n / 1000) + 'k';
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return String(n);
 }
 
 function esc(s) {
@@ -45,12 +84,24 @@ function esc(s) {
 }
 
 const files = walk(ROOT).sort((a, b) => b.mtime - a.mtime);
-const items = files.map(f => ({
-  rel: f.rel,
-  title: extractTitle(join(ROOT, f.rel)) || f.rel,
-  folder: f.rel.includes('/') ? f.rel.split('/')[0] : '(gốc)',
-  mtime: f.mtime,
-}));
+const items = files.map(f => {
+  const absPath = join(ROOT, f.rel);
+  const html = readFileSync(absPath, 'utf8');
+  const text = stripHtml(html);
+  const words = wordCount(text);
+  const readMin = Math.max(1, Math.round(words / 250));
+  return {
+    rel: f.rel,
+    title: extractTitle(html) || f.rel,
+    folder: f.rel.includes('/') ? f.rel.split('/')[0] : '(gốc)',
+    mtime: f.mtime,
+    words,
+    readMin,
+  };
+});
+
+const totalWords = items.reduce((s, it) => s + it.words, 0);
+const totalRead = Math.max(1, Math.round(totalWords / 250));
 
 const groups = new Map();
 for (const it of items) {
@@ -58,73 +109,308 @@ for (const it of items) {
   groups.get(it.folder).push(it);
 }
 
-const sections = [...groups.entries()].map(([folder, list]) => `
+const F_LOGO_MINI = `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M30 20 L78 20 L65 35 L30 35 Z"/><path d="M30 42 L66 42 L53 57 L30 57 Z"/><path d="M30 64 L54 64 L41 79 L30 79 Z"/></g></svg>`;
+
+const sections = [...groups.entries()].map(([folder, list]) => {
+  const label = FOLDER_LABELS[folder] || folder;
+  return `
   <section class="group">
-    <h2>${esc(folder)} <span class="count">${list.length}</span></h2>
-    <ul class="list">
-${list.map(it => `      <li class="item"><a href="${esc(it.rel)}">
-        <div class="title">${esc(it.title)}</div>
-        <div class="path">${esc(it.rel)}</div>
-      </a></li>`).join('\n')}
-    </ul>
-  </section>`).join('\n');
+    <header class="group-head">
+      <span class="dot"></span>
+      <h2>${esc(label)}</h2>
+      <span class="count">${list.length}</span>
+    </header>
+    <div class="cards">
+${list.map(it => `      <a class="card" href="${esc(it.rel)}">
+        <div class="card-thumb">${F_LOGO_MINI}</div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span>${esc(FOLDER_LABELS[it.folder] || it.folder)}</span>
+            <span class="sep"></span>
+            <span>${esc(timeAgo(it.mtime))}</span>
+          </div>
+          <h3 class="card-title">${esc(it.title)}</h3>
+          <div class="card-stats">
+            <span class="stat-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>${formatK(it.words)} từ</span>
+            <span class="stat-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>~${it.readMin} phút</span>
+          </div>
+          <div class="card-path">${esc(it.rel)}</div>
+        </div>
+        <div class="card-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+        </div>
+      </a>`).join('\n')}
+    </div>
+  </section>`;
+}).join('\n');
 
 const html = `<!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#042f23">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#021712">
+<meta name="description" content="Sổ tay QN — thư viện tài liệu cá nhân tại docs.vienthietke.com">
 <title>Sổ tay QN — docs.vienthietke.com</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <style>
-:root{--bg:#0b1020;--text:#f7f9ff;--muted:#b9c2d9;--blue:#7cc7ff;--cyan:#74f0d2;--violet:#c5a3ff;--shadow:0 18px 60px rgba(0,0,0,.35)}
+:root{
+  --bg-base:#021712;
+  --emerald-200:#a7f3d0;
+  --emerald-300:#6ee7b7;
+  --emerald-400:#34d399;
+  --emerald-500:#10b981;
+  --emerald-600:#059669;
+  --ink:#f0fdf4;
+  --ink-mute:#a7f3d0;
+  --ink-soft:#6ee7b7;
+  --line:rgba(255,255,255,.08);
+  --line-strong:rgba(255,255,255,.14);
+  --card:rgba(255,255,255,.035);
+  --shadow-card:0 18px 50px -20px rgba(0,0,0,.7);
+}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(circle at 10% 0%,rgba(124,199,255,.18),transparent 34%),radial-gradient(circle at 90% 10%,rgba(197,163,255,.16),transparent 32%),radial-gradient(circle at 50% 110%,rgba(116,240,210,.12),transparent 42%),var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-.wrap{max-width:980px;margin:0 auto;padding:32px 24px 80px}
-.hero{padding:28px;border-radius:24px;border:1px solid rgba(255,255,255,.10);background:linear-gradient(135deg,rgba(124,199,255,.16),rgba(197,163,255,.10) 50%,rgba(116,240,210,.10)),rgba(18,26,51,.82);box-shadow:var(--shadow);margin-bottom:28px}
-.hero h1{margin:0 0 8px;font-size:clamp(28px,4vw,42px)}
-.hero p{margin:0;color:var(--muted)}
-h2{margin:28px 0 12px;font-size:14px;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:10px}
-h2 .count{padding:2px 8px;border-radius:999px;background:rgba(124,199,255,.14);color:#cfeeff;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none}
-.list{list-style:none;padding:0;margin:0;display:grid;gap:10px}
-.item a{display:block;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);text-decoration:none;color:var(--text);transition:border-color .15s,transform .15s,background .15s}
-.item a:hover{border-color:var(--blue);background:rgba(124,199,255,.06);transform:translateX(2px)}
-.title{font-weight:650}
-.path{margin-top:4px;font-size:13px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace}
-.footer{margin-top:48px;text-align:center;color:var(--muted);font-size:13px}
-.footer code{padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.08);font-size:12px}
-.install{position:fixed;right:16px;bottom:16px;z-index:50;display:none;align-items:center;gap:10px;padding:12px 14px 12px 16px;background:linear-gradient(135deg,#34d399,#10b981);color:#042f23;border:0;border-radius:999px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 12px 28px rgba(16,185,129,.35),0 2px 8px rgba(0,0,0,.2);transition:transform .15s}
-.install:hover{transform:translateY(-2px)}
-.install.show{display:inline-flex;animation:slideUp .35s ease-out}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  margin:0;
+  min-height:100svh;
+  background:
+    radial-gradient(70% 50% at 50% -10%, rgba(16,185,129,.28), transparent 70%),
+    radial-gradient(50% 50% at 100% 100%, rgba(52,211,153,.18), transparent 70%),
+    radial-gradient(40% 40% at 0% 60%, rgba(5,150,105,.16), transparent 70%),
+    var(--bg-base);
+  color:var(--ink);
+  font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"SF Pro Display","Segoe UI",Roboto,sans-serif;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit}
+.bg-orbs{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.45;animation:drift 28s ease-in-out infinite}
+.orb1{width:80vmax;height:80vmax;background:radial-gradient(circle,rgba(16,185,129,.4),transparent 70%);top:-30vmax;left:-15vmax}
+.orb2{width:60vmax;height:60vmax;background:radial-gradient(circle,rgba(52,211,153,.28),transparent 70%);top:30%;right:-25vmax;animation-delay:-10s}
+.orb3{width:50vmax;height:50vmax;background:radial-gradient(circle,rgba(110,231,183,.2),transparent 70%);bottom:-20vmax;left:25%;animation-delay:-18s}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(2vmax,-3vmax) scale(1.08)}}
+
+.wrap{max-width:1080px;margin:0 auto;padding:24px 16px 60px;position:relative;z-index:1}
+@media(min-width:640px){.wrap{padding:36px 32px 80px}}
+@media(min-width:1024px){.wrap{padding:56px 48px 120px}}
+
+/* === HERO === */
+.hero{margin-bottom:36px}
+.brand-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.brand-logo{
+  width:clamp(48px,11vw,64px);height:clamp(48px,11vw,64px);
+  border-radius:clamp(11px,2.5vw,15px);
+  background:linear-gradient(135deg,#34d399 0%,#10b981 100%);
+  display:inline-flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 32px -8px rgba(16,185,129,.55),0 0 0 1px rgba(255,255,255,.06) inset;
+  position:relative;overflow:hidden;flex-shrink:0;
+  animation:logoPulse 4s ease-in-out infinite;
+}
+@keyframes logoPulse{0%,100%{box-shadow:0 12px 32px -8px rgba(16,185,129,.55),0 0 0 1px rgba(255,255,255,.06) inset}50%{box-shadow:0 16px 44px -8px rgba(52,211,153,.7),0 0 0 1px rgba(255,255,255,.1) inset}}
+.brand-logo svg{width:62%;height:62%;color:#fff}
+.brand-logo::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.18),transparent 50%);pointer-events:none}
+.wordmark{display:flex;align-items:center;gap:8px;min-width:0}
+.wordmark h1{
+  margin:0;
+  font-size:clamp(34px,8vw,54px);
+  font-weight:900;
+  letter-spacing:-0.04em;
+  line-height:.95;
+  color:var(--ink);
+  font-stretch:75%;
+  font-feature-settings:"ss01";
+  white-space:nowrap;
+}
+.verified{width:clamp(20px,5vw,26px);height:clamp(20px,5vw,26px);flex-shrink:0;color:var(--emerald-500)}
+.tagline{margin:0 0 28px;color:var(--emerald-200);font-size:clamp(14px,3vw,16px);font-weight:500;letter-spacing:.01em}
+.tagline b{color:var(--ink);font-weight:700}
+
+/* === STATS STRIP === */
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--line);
+  border-radius:16px;overflow:hidden;
+  margin-bottom:40px;
+  border:1px solid var(--line);
+}
+.stat-cell{background:rgba(2,23,18,.55);backdrop-filter:blur(20px);padding:18px 12px;text-align:center}
+.stat-cell b{display:block;font-size:clamp(22px,5.5vw,30px);font-weight:800;letter-spacing:-0.025em;color:var(--emerald-300);line-height:1;font-feature-settings:"tnum"}
+.stat-cell small{display:block;font-size:.5em;font-weight:600;color:var(--ink-soft);margin-top:3px;letter-spacing:.04em;text-transform:uppercase;line-height:1.2}
+@media(min-width:640px){.stat-cell{padding:22px 14px}}
+
+/* === GROUPS === */
+.group{margin:36px 0}
+.group-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--emerald-400);box-shadow:0 0 10px var(--emerald-400);flex-shrink:0}
+.group-head h2{margin:0;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--emerald-200)}
+.group-head .count{
+  padding:2px 9px;border-radius:999px;
+  background:rgba(16,185,129,.15);
+  border:1px solid rgba(16,185,129,.28);
+  font-size:11px;font-weight:700;color:var(--emerald-300);
+  font-feature-settings:"tnum";
+}
+
+/* === CARDS === */
+.cards{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:720px){.cards{grid-template-columns:1fr 1fr;gap:14px}}
+@media(min-width:1100px){.cards{grid-template-columns:1fr 1fr;gap:16px}}
+
+.card{
+  position:relative;display:flex;align-items:stretch;gap:14px;
+  padding:16px;border-radius:18px;
+  background:var(--card);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--line);
+  text-decoration:none;color:inherit;
+  overflow:hidden;
+  transition:border-color .2s,transform .2s,background .2s,box-shadow .2s;
+}
+.card::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 0% 0%,rgba(52,211,153,.1),transparent 50%);pointer-events:none;opacity:0;transition:opacity .25s}
+.card:hover,.card:focus-visible{border-color:rgba(52,211,153,.45);background:rgba(16,185,129,.045);transform:translateY(-2px);box-shadow:var(--shadow-card)}
+.card:hover::before,.card:focus-visible::before{opacity:1}
+.card:focus-visible{outline:2px solid var(--emerald-400);outline-offset:2px}
+
+.card-thumb{
+  flex-shrink:0;width:48px;height:48px;
+  border-radius:12px;
+  background:linear-gradient(135deg,#34d399,#10b981);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;
+  box-shadow:0 6px 16px -4px rgba(16,185,129,.5),0 0 0 1px rgba(255,255,255,.08) inset;
+  position:relative;overflow:hidden;
+}
+.card-thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent 50%);pointer-events:none}
+.card-thumb svg{width:58%;height:58%;position:relative;z-index:1}
+
+.card-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.card-meta{
+  display:flex;align-items:center;gap:8px;
+  font-size:10.5px;font-weight:700;
+  color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.06em;
+  opacity:.85;
+}
+.card-meta .sep{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.4;flex-shrink:0}
+.card-title{
+  margin:0;font-size:clamp(15px,3.5vw,17px);font-weight:700;
+  color:var(--ink);letter-spacing:-0.01em;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card-stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.stat-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px 3px 7px;border-radius:999px;
+  background:rgba(16,185,129,.1);
+  border:1px solid rgba(16,185,129,.22);
+  color:var(--emerald-300);
+  font-size:11px;font-weight:600;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-feature-settings:"tnum";
+}
+.stat-pill svg{width:11px;height:11px;flex-shrink:0;stroke-width:2.5}
+.card-path{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:11px;color:var(--ink-soft);opacity:.55;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  margin-top:auto;padding-top:4px;
+}
+
+.card-arrow{
+  flex-shrink:0;align-self:center;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--emerald-300);
+  transition:background .2s,transform .2s,color .2s,border-color .2s;
+}
+.card-arrow svg{width:14px;height:14px}
+.card:hover .card-arrow,.card:focus-visible .card-arrow{background:var(--emerald-500);color:var(--bg-base);border-color:var(--emerald-500);transform:translateX(2px)}
+
+/* === FOOTER === */
+.footer{margin-top:60px;padding-top:28px;border-top:1px solid var(--line);text-align:center;color:var(--ink-soft);font-size:12px;opacity:.7}
+.footer code{padding:2px 7px;border-radius:5px;background:rgba(255,255,255,.06);font-size:11px}
+
+/* === INSTALL BUTTON === */
+.install{
+  position:fixed;right:16px;bottom:16px;z-index:50;
+  display:none;align-items:center;gap:10px;
+  padding:12px 14px 12px 16px;
+  background:linear-gradient(135deg,#34d399,#10b981);
+  color:#042f23;
+  border:0;border-radius:999px;
+  font:inherit;font-weight:800;font-size:14px;
+  cursor:pointer;
+  box-shadow:0 16px 36px -8px rgba(16,185,129,.55),0 0 0 1px rgba(255,255,255,.1) inset;
+  transition:transform .15s,box-shadow .15s;
+}
+.install:hover{transform:translateY(-2px);box-shadow:0 20px 44px -8px rgba(52,211,153,.65),0 0 0 1px rgba(255,255,255,.15) inset}
+.install.show{display:inline-flex;animation:slideUp .35s cubic-bezier(.2,.8,.2,1)}
 .install svg{width:18px;height:18px;flex-shrink:0}
-.install .x{width:22px;height:22px;border-radius:50%;background:rgba(4,47,35,.18);border:0;color:#042f23;font-size:14px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:700;padding:0}
-.install .x:hover{background:rgba(4,47,35,.28)}
+.install .x{width:22px;height:22px;border-radius:50%;background:rgba(4,47,35,.2);border:0;color:#042f23;font-size:14px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:700;padding:0;margin-left:2px;flex-shrink:0}
+.install .x:hover{background:rgba(4,47,35,.32)}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+
+/* === MODAL === */
+.modal{position:fixed;inset:0;background:rgba(2,23,18,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
 .modal.show{display:flex;animation:fadeIn .2s}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal-card{background:var(--bg);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px;max-width:380px;width:100%;color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.5)}
-.modal-card h3{margin:0 0 6px;font-size:18px}
-.modal-card p{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.5}
-.modal-card ol{margin:0 0 16px;padding-left:22px;color:var(--text)}
+.modal-card{background:linear-gradient(180deg,#053a2c,#021712);border:1px solid var(--line-strong);border-radius:20px;padding:24px;max-width:380px;width:100%;color:var(--ink);box-shadow:0 40px 100px -20px rgba(0,0,0,.7)}
+.modal-card h3{margin:0 0 8px;font-size:18px;font-weight:800;letter-spacing:-0.01em}
+.modal-card p{margin:0 0 14px;color:var(--ink-mute);font-size:14px;line-height:1.55}
+.modal-card ol{margin:0 0 16px;padding-left:22px;color:var(--ink)}
 .modal-card li{margin:8px 0;font-size:14px;line-height:1.55}
-.modal-card li b{color:var(--cyan)}
-.modal-card .ok{margin-top:6px;padding:11px 18px;background:linear-gradient(135deg,#34d399,#10b981);color:#042f23;border:0;border-radius:999px;font-weight:700;cursor:pointer;width:100%;font-size:14px}
-.share-icon{display:inline-block;vertical-align:-3px;margin:0 2px;width:18px;height:18px}
-@media(max-width:560px){.install{right:12px;bottom:12px;padding:11px 12px 11px 14px;font-size:13px}}
+.modal-card li b{color:var(--emerald-300)}
+.modal-card .ok{margin-top:6px;padding:12px 20px;background:linear-gradient(135deg,#34d399,#10b981);color:#042f23;border:0;border-radius:999px;font-weight:800;cursor:pointer;width:100%;font-size:14px;font-family:inherit}
+.share-icon{display:inline-block;vertical-align:-4px;margin:0 2px;width:18px;height:18px}
+
+/* === REDUCED MOTION === */
+@media(prefers-reduced-motion:reduce){
+  .orb,.brand-logo,.install.show,.modal.show{animation:none!important}
+  .card{transition:none}
+}
+
+@media(max-width:560px){.install{padding:11px 12px 11px 14px;font-size:13px}}
 </style>
 </head>
 <body>
+
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
 <div class="wrap">
+
   <header class="hero">
-    <h1>docs.vienthietke.com</h1>
-    <p>Thư viện tài liệu — ${items.length} trang</p>
+    <div class="brand-row">
+      <div class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 100 100"><g fill="currentColor"><path d="M30 20 L78 20 L65 35 L30 35 Z"/><path d="M30 42 L66 42 L53 57 L30 57 Z"/><path d="M30 64 L54 64 L41 79 L30 79 Z"/></g></svg>
+      </div>
+      <div class="wordmark">
+        <h1>SỔ TAY QN</h1>
+        <svg class="verified" viewBox="0 0 24 24" fill="none" aria-label="verified"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M7 12l3.5 3.5 7-7" stroke="#021712" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <p class="tagline">Thư viện tài liệu cá nhân · <b>docs.vienthietke.com</b></p>
+
+    <div class="stats" role="list">
+      <div class="stat-cell" role="listitem"><b>${items.length}<small>trang</small></b></div>
+      <div class="stat-cell" role="listitem"><b>${formatK(totalWords)}<small>từ</small></b></div>
+      <div class="stat-cell" role="listitem"><b>~${totalRead}<small>phút đọc</small></b></div>
+    </div>
   </header>
+
 ${sections}
-  <p class="footer">Tự sinh bởi <code>scripts/build-index.mjs</code> · ${new Date().toISOString().slice(0, 10)}</p>
+
+  <p class="footer">Tự sinh bởi <code>scripts/build-index.mjs</code> · cập nhật ${new Date().toISOString().slice(0, 10)}</p>
 </div>
 
 <button id="installBtn" class="install" aria-label="Cài app Sổ tay QN">
@@ -188,14 +474,11 @@ ${sections}
   function openModal(m){ m.classList.add('show'); }
   function closeModal(m){ m.classList.remove('show'); }
 
-  // 1. Đã ở chế độ standalone → đã cài, không show
   if (isStandalone()) {
     localStorage.setItem('pwa-installed','1');
     return;
   }
-  // 2. Đã cài từ session trước
   if (localStorage.getItem('pwa-installed') === '1') {
-    // Re-check sau 5s: nếu vẫn không vào standalone, có thể user đã uninstall
     setTimeout(function(){
       if (!isStandalone()) {
         localStorage.removeItem('pwa-installed');
@@ -204,24 +487,19 @@ ${sections}
     }, 5000);
     return;
   }
-  // 3. Dismissed trong session này
   if (sessionStorage.getItem('install-dismissed') === '1') return;
 
-  // 4. iOS → luôn show, click ra modal
   if (isIOS()) {
     document.getElementById('installLabel').textContent = 'Cài app (iOS)';
     show();
   }
 
-  // 5. Android/desktop Chrome — đợi prompt event
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
     deferred = e;
     show();
   });
 
-  // Nếu sau 4s vẫn chưa có deferred và không phải iOS → vẫn show button
-  // (click sẽ ra modal generic hướng dẫn menu trình duyệt)
   setTimeout(function(){
     if (!deferred && !isIOS() && !isStandalone()) show();
   }, 4000);
@@ -266,8 +544,8 @@ ${sections}
 `;
 
 writeFileSync(OUTPUT, html);
-console.log(`✓ Wrote ${relative(ROOT, OUTPUT)} (${items.length} entries)`);
-for (const it of items) console.log(`  - ${it.rel}  — ${it.title}`);
+console.log(`✓ Wrote ${relative(ROOT, OUTPUT)} (${items.length} entries, ${formatK(totalWords)} từ, ~${totalRead} phút)`);
+for (const it of items) console.log(`  - ${it.rel}  — ${it.title}  (${it.words} từ, ${it.readMin}m)`);
 
 // === Cập nhật precache list trong sw.js ===
 const swPath = join(ROOT, 'sw.js');
