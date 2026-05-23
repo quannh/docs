@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sổ tay nhanh camera vivo X200 Ultra</title>
+<style>
+  /* DESIGN TOKENS - LIGHT THEME */
+  :root {
+    --bg-body: #F4F7F9;
+    --bg-card: #FFFFFF;
+    --text-main: #1A202C;
+    --text-muted: #64748B;
+    --primary: #2563EB; /* Vivo Blue */
+    --primary-light: #EFF6FF;
+    --accent: #0EA5E9; /* Cyan */
+    --accent-light: #E0F2FE;
+    --success: #10B981;
+    --success-light: #D1FAE5;
+    --danger: #EF4444;
+    --danger-light: #FEE2E2;
+    --warning: #F59E0B;
+    --warning-light: #FEF3C7;
+    --border: #E2E8F0;
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 8px;
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  /* BASE STYLES */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { 
+    background-color: var(--bg-body); 
+    color: var(--text-main); 
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    padding-bottom: 40px;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  
+  /* TYPOGRAPHY */
+  h1 { font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 12px; }
+  h2 { font-size: clamp(1.3rem, 4vw, 1.75rem); font-weight: 700; margin-bottom: 16px; color: var(--text-main); padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 8px; }
+  p { margin-bottom: 12px; }
+  .text-muted { color: var(--text-muted); font-size: 0.95rem; }
+  .data-hl { font-weight: 700; color: var(--primary); }
+
+  /* LAYOUT */
+  .container { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+  section { margin-top: 40px; }
+  .grid-2 { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  .grid-3 { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  .grid-4 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+
+  /* COMPONENTS */
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, #FFFFFF, var(--primary-light));
+    border-radius: var(--radius-lg);
+    padding: 32px 24px;
+    margin-top: 24px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border);
+  }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .tag { 
+    background: var(--bg-card); color: var(--primary); font-size: 0.85rem; font-weight: 600;
+    padding: 6px 12px; border-radius: 99px; border: 1px solid var(--accent-light);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Notice */
+  .notice {
+    background: var(--warning-light); color: #B45309; padding: 12px 16px;
+    border-radius: var(--radius-md); font-size: 0.9rem; margin-top: 16px;
+    display: flex; align-items: flex-start; gap: 8px; border: 1px solid #FCD34D;
+  }
+
+  /* Horizontal Scroll for Lenses */
+  .swipe-row {
+    display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px;
+    scroll-snap-type: x mandatory; margin: 0 -16px; padding: 8px 16px 24px 16px;
+    -ms-overflow-style: none; scrollbar-width: none;
+  }
+  .swipe-row::-webkit-scrollbar { display: none; }
+  .swipe-item { flex: 0 0 85%; scroll-snap-align: center; }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card); border-radius: var(--radius-md);
+    padding: 20px; box-shadow: var(--shadow-soft); border: 1px solid var(--border);
+    height: 100%;
+  }
+
+  /* Data Metrics */
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .metric-box { background: var(--bg-body); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+  .metric-value { display: block; font-size: 1.15rem; font-weight: 800; color: var(--text-main); line-height: 1.1; }
+  .metric-label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+
+  /* Badges */
+  .badge-lens {
+    display: inline-block; background: var(--primary); color: white;
+    font-weight: 700; font-size: 0.85rem; padding: 4px 10px; border-radius: 99px; margin-bottom: 12px;
+  }
+  .badge-lens.tele { background: #8B5CF6; } 
+  
+  .status-badge { display: inline-flex; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
+  .status-good { background: var(--success-light); color: #065F46; border: 1px solid #A7F3D0; }
+  .status-warn { background: var(--warning-light); color: #92400E; border: 1px solid #FDE68A; }
+  .status-bad { background: var(--danger-light); color: #991B1B; border: 1px solid #FECACA; }
+
+  /* Tables */
+  .data-table {
+    width: 100%; border-collapse: separate; border-spacing: 0; border-radius: var(--radius-md);
+    overflow: hidden; border: 1px solid var(--border); background: var(--bg-card); margin-bottom: 16px;
+  }
+  .data-table th, .data-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+  .data-table th { background: var(--bg-body); font-weight: 700; color: var(--text-main); }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* Sensor Visualizer */
+  .sensor-bar { height: 10px; background: var(--border); border-radius: 99px; margin: 8px 0 16px 0; overflow: hidden; }
+  .sensor-fill { height: 100%; border-radius: 99px; }
+  .fill-max { background: var(--primary); width: 100%; }
+  .fill-high { background: #8B5CF6; width: 83%; }
+
+  /* Do / Don't */
+  .box-do { border-top: 4px solid var(--success); }
+  .box-dont { border-top: 4px solid var(--danger); }
+  ul { padding-left: 20px; color: var(--text-muted); margin-top: 8px; }
+  li { margin-bottom: 6px; }
+  li strong { color: var(--text-main); }
+
+  /* Scenarios List */
+  .scenario-list { display: flex; flex-direction: column; gap: 12px; }
+  .scenario-item {
+    background: var(--bg-card); padding: 14px 16px; border-radius: var(--radius-md);
+    border: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px;
+  }
+  .sc-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;}
+  .sc-title { font-weight: 700; font-size: 1rem; line-height: 1.3;}
+  .sc-lens { font-weight: 800; color: var(--primary); font-size: 1rem; background: var(--primary-light); padding: 2px 8px; border-radius: 6px; white-space: nowrap;}
+  .sc-mode { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+  .sc-desc { font-size: 0.9rem; color: var(--text-muted); margin: 0; }
+
+  /* Steps */
+  .step-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+  .step-card {
+    display: flex; gap: 16px; align-items: flex-start; background: var(--bg-card);
+    padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border);
+  }
+  .step-num {
+    flex-shrink: 0; width: 32px; height: 32px; background: var(--primary-light);
+    color: var(--primary); font-weight: 800; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  }
+
+  /* KBD Style */
+  .kbd { font-family: ui-monospace, monospace; padding: 2px 6px; border-radius: 6px; background: var(--bg-body); border: 1px solid var(--border); font-size: 0.85rem; }
+
+  /* Desktop Upgrades */
+  @media (min-width: 768px) {
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .swipe-row { flex-wrap: wrap; overflow: visible; padding-bottom: 0; margin: 0; }
+    .swipe-item { flex: 1; min-width: 250px; }
+    .step-list { flex-direction: row; }
+    .step-card { flex-direction: column; align-items: center; text-align: center; flex: 1; }
+    .scenario-list { display: grid; grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="container">
+    <header class="hero">
+      <h1>Sổ tay nhanh camera<br>vivo X200 Ultra</h1>
+      <p class="text-muted">Tóm tắt thực chiến: chọn đúng lens vật lý, tránh khẩu giả lập khi cần ảnh thật, hiểu cảm biến lớn nhỏ, và có bảng setup nhanh cho các tình huống chụp phổ biến.</p>
+      <div class="hero-tags">
+        <span class="tag">📷 14mm / 35mm / 85mm</span>
+        <span class="tag">🌙 Chụp đêm</span>
+        <span class="tag">👤 Chân dung & bokeh thật</span>
+        <span class="tag">🎬 Video</span>
+        <span class="tag">⚙️ Pro mode</span>
+      </div>
+      <div class="notice">
+        <strong>Lưu ý:</strong> Tài liệu này tổng hợp cho <b>vivo X200 Ultra</b>.
+      </div>
+    </header>
+
+    <section id="native">
+      <h2>1. Ba mốc Lens Native (Vật lý)</h2>
+      <p class="text-muted">Muốn chất lượng tốt nhất, ưu tiên các mốc native/ống kính thật: <b>14mm, 35mm, 85mm</b>. Các mốc trung gian thường là crop + xử lý.</p>
+      
+      <div class="swipe-row">
+        <div class="swipe-item">
+          <div class="card">
+            <span class="badge-lens">0.6x</span>
+            <h3>14mm Ultra-wide</h3>
+            <p class="text-muted" style="font-size: 0.85rem;">Rộng, phong cảnh, kiến trúc, nhóm đông, vlog, cảnh hẹp.</p>
+            <div class="metrics-grid">
+              <div class="metric-box"><span class="metric-value">50MP</span><span class="metric-label">Sony LYT-818</span></div>
+              <div class="metric-box"><span class="metric-value">1/1.28"</span><span class="metric-label">Cảm biến rất lớn</span></div>
+              <div class="metric-box"><span class="metric-value">f/2.0</span><span class="metric-label">Khẩu vật lý</span></div>
+              <div class="metric-box"><span class="metric-value">OIS+AF</span><span class="metric-label">Ổn định + Lấy nét</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="swipe-item">
+          <div class="card" style="border-color: var(--primary); border-width: 2px;">
+            <span class="badge-lens">~1.5x</span>
+            <h3>35mm Main</h3>
+            <p class="text-muted" style="font-size: 0.85rem;">Nên dùng nhiều nhất: đời thường, street, gia đình, đồ ăn, chụp đêm.</p>
+            <div class="metrics-grid">
+              <div class="metric-box"><span class="metric-value">50MP</span><span class="metric-label">Sony LYT-818</span></div>
+              <div class="metric-box"><span class="metric-value">1/1.28"</span><span class="metric-label">Cảm biến rất lớn</span></div>
+              <div class="metric-box"><span class="metric-value">f/1.69</span><span class="metric-label" style="color:var(--primary)">Sáng nhất 3 cam</span></div>
+              <div class="metric-box"><span class="metric-value">OIS+AF</span><span class="metric-label">Rất đa dụng</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="swipe-item">
+          <div class="card">
+            <span class="badge-lens tele">~3.7x</span>
+            <h3>85mm Tele</h3>
+            <p class="text-muted" style="font-size: 0.85rem;">Chân dung, bokeh thật, sân khấu, zoom xa, tele macro.</p>
+            <div class="metrics-grid">
+              <div class="metric-box"><span class="metric-value">200MP</span><span class="metric-label">Samsung HP9</span></div>
+              <div class="metric-box"><span class="metric-value">1/1.4"</span><span class="metric-label">Rất lớn cho tele</span></div>
+              <div class="metric-box"><span class="metric-value">f/2.27</span><span class="metric-label">Khẩu vật lý</span></div>
+              <div class="metric-box"><span class="metric-value">OIS+AF</span><span class="metric-label">Chân dung mạnh nhất</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="sensors">
+      <h2>2. Kích thước cảm biến</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Quy tắc vàng & Phân loại</h3>
+          <p class="text-muted"><b>Mẫu số càng nhỏ → cảm biến càng lớn.</b><br> Ví dụ <span class="kbd">1/1.28"</span> lớn hơn <span class="kbd">1/1.4"</span>, và lớn hơn nhiều so với <span class="kbd">1/2"</span>.</p>
+          
+          <div class="data-table" style="margin-top: 12px; margin-bottom: 0;">
+            <table>
+              <tr>
+                <td><b>1"</b></td>
+                <td><span class="status-badge status-good">Rất cao cấp</span></td>
+                <td class="text-muted">Thu sáng mạnh, đêm sạch.</td>
+              </tr>
+              <tr>
+                <td><b>1/1.28"</b></td>
+                <td><span class="status-badge status-good">Rất cao cấp</span></td>
+                <td class="text-muted">Rất lớn cho ultra-wide/main.</td>
+              </tr>
+              <tr>
+                <td><b>1/1.4"</b></td>
+                <td><span class="status-badge status-good">Rất lớn cho tele</span></td>
+                <td class="text-muted">Đáng giá cho chân dung, zoom.</td>
+              </tr>
+              <tr>
+                <td><b>1/1.56"</b></td>
+                <td><span class="status-badge status-warn">Tốt</span></td>
+                <td class="text-muted">Ổn, thường yếu hơn trong đêm.</td>
+              </tr>
+              <tr>
+                <td><b>≤ 1/2"</b></td>
+                <td><span class="status-badge status-bad">Trung bình/Phụ</span></td>
+                <td class="text-muted">Phụ thuộc AI, dễ nhiễu/bệt.</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h3>Tác động chính</h3>
+          <ul style="margin-top:0">
+            <li>Thu được nhiều ánh sáng hơn.</li>
+            <li>Ảnh đêm sạch hơn, ít nhiễu hơn.</li>
+            <li>Giữ chi tiết vùng sáng/tối tốt hơn.</li>
+            <li>Dễ có bokeh vật lý hơn (còn phụ thuộc tiêu cự).</li>
+            <li>Crop/zoom nhẹ đỡ bệt hơn.</li>
+          </ul>
+
+          <h3 style="margin-top: 20px;">So trong X200 Ultra</h3>
+          <div>
+            <span style="font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between;">14mm & 35mm <span class="data-hl">1/1.28"</span></span>
+            <div class="sensor-bar"><div class="sensor-fill fill-max"></div></div>
+          </div>
+          <div>
+            <span style="font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between;">85mm <span style="color:#8B5CF6;">1/1.4"</span></span>
+            <div class="sensor-bar" style="margin-bottom: 0;"><div class="sensor-fill fill-high"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="aperture">
+      <h2>3. Khẩu vật lý vs Khẩu giả lập</h2>
+      <div class="grid-2">
+        <div class="card box-do">
+          <h3 style="color: #059669;">✅ Muốn dùng khẩu vật lý thật</h3>
+          <ul>
+            <li>Dùng <strong>Photo (Ảnh)</strong> hoặc <strong>Pro (Chuyên nghiệp)</strong>.</li>
+            <li>Chọn đúng lens thật: <strong>14mm, 35mm, 85mm</strong>.</li>
+            <li>Không thấy thanh chỉnh F là đúng.</li>
+            <li>Khẩu thật cố định: 14mm f/2.0, 35mm f/1.69, 85mm f/2.27.</li>
+          </ul>
+        </div>
+        <div class="card box-dont">
+          <h3 style="color: #DC2626;">❌ Tránh nếu sợ "giả"</h3>
+          <ul>
+            <li>Không dùng <strong>Portrait (Chân dung)</strong>.</li>
+            <li>Không chỉnh <strong>F0.95, F1.4, F2.8, F4...</strong> trong Portrait.</li>
+            <li>Tránh hiệu ứng <strong>Zeiss (Planar, Biotar...)</strong> nếu muốn quang học thuần.</li>
+            <li>Nếu ảnh chụp xong còn chỉnh lại F/xóa phông được → có xử lý AI.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 16px; background: var(--warning-light); border-color: #FCD34D;">
+        <h3 style="color: #B45309; margin-bottom: 4px;">💡 Ghi nhớ</h3>
+        <p style="margin:0; font-size: 0.95rem; color: #92400E;">Trên điện thoại, lens thường <b>khẩu cố định</b>. F2.8/F4 trong Portrait là <b>mức xóa phông giả lập</b>, không làm lens khép/mở thật. Trên máy ảnh chuyên nghiệp, khẩu vật lý nằm trong lens và body mới điều khiển được.</p>
+      </div>
+    </section>
+
+    <section id="scenarios">
+      <h2>4. Setup nhanh theo tình huống</h2>
+      <div class="scenario-list">
+        
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Chụp thường ban ngày</span>
+            <span class="sc-lens">35mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Photo</div>
+          <p class="sc-desc">Auto; trời gắt dùng EV khoảng -0.3 để giữ highlight.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Street / Đời thường</span>
+            <span class="sc-lens">35mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Humanistic / Photo</div>
+          <p class="sc-desc">Nếu có người đi bộ, giữ shutter khoảng 1/250s trở lên khi dùng Pro.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Chân dung bokeh thật</span>
+            <span class="sc-lens">85mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Photo / Pro</div>
+          <p class="sc-desc">Không dùng Portrait. Mẫu gần máy, nền xa mẫu 5–10m càng tốt.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Chân dung đẹp nhanh</span>
+            <span class="sc-lens">35/50/85/135</span>
+          </div>
+          <div class="sc-mode">Chế độ: Portrait</div>
+          <p class="sc-desc">Dùng Zeiss Planar, F2.8 hoặc F4. Đẹp nhanh nhưng có xử lý thuật toán.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Nhóm đông / Phòng hẹp</span>
+            <span class="sc-lens">14mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Photo</div>
+          <p class="sc-desc">Để người ở giữa khung, tránh mặt sát mép ảnh gây méo.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Phong cảnh / Kiến trúc</span>
+            <span class="sc-lens">14mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Photo / Landscape</div>
+          <p class="sc-desc">Giữ máy thẳng giảm méo phối cảnh; cảnh tĩnh có thể dùng 50MP.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Đêm đường phố</span>
+            <span class="sc-lens">35mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Night / Photo</div>
+          <p class="sc-desc">35mm f/1.69 sáng nhất, dễ có ảnh sạch hơn, ít nhiễu.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Concert / Sân khấu</span>
+            <span class="sc-lens">85mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Stage / Video</div>
+          <p class="sc-desc">Dùng 85mm trước rồi zoom thêm vừa phải. Tránh laser chiếu thẳng.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Trẻ em / Thú cưng</span>
+            <span class="sc-lens">35 / 85mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Snapshot / Pro</div>
+          <p class="sc-desc">Gần dùng 35, xa dùng 85. Pro: bắt đầu 1/500s; chạy nhanh 1/1000s.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Macro hoa / Đồ vật</span>
+            <span class="sc-lens">85mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Photo / Macro</div>
+          <p class="sc-desc">Tele macro cho nền mờ đẹp, không cần dí quá sát vào vật thể.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Đồ ăn</span>
+            <span class="sc-lens">35 / 85mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Food / Photo</div>
+          <p class="sc-desc">35mm cho cả bàn; 85mm cho món riêng và tạo nền mờ.</p>
+        </div>
+
+        <div class="scenario-item">
+          <div class="sc-header">
+            <span class="sc-title">Tài liệu / Hóa đơn</span>
+            <span class="sc-lens">35mm</span>
+          </div>
+          <div class="sc-mode">Chế độ: Document / Scan</div>
+          <p class="sc-desc">Chụp vuông góc, ánh sáng đều, tránh đổ bóng tay vào giấy.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="bokeh">
+      <h2>5. Công thức Bokeh thật (Không giả lập)</h2>
+      
+      <div class="step-list">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div><h3>Chọn 85mm</h3><p class="text-muted" style="margin:0; font-size: 0.9rem;">Tele vật lý khẩu f/2.27.</p></div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div><h3>Photo/Pro</h3><p class="text-muted" style="margin:0; font-size: 0.9rem;">Không Portrait, Không thanh F.</p></div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div><h3>Mẫu gần</h3><p class="text-muted" style="margin:0; font-size: 0.9rem;">Bán thân/cận mặt: 1.5–3m.</p></div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div><h3>Nền xa</h3><p class="text-muted" style="margin:0; font-size: 0.9rem;">Nền càng xa, đèn càng dễ ra bokeh.</p></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Ảnh đêm giống bài mẫu (ít giả)</h3>
+          <ul>
+            <li><b>Mode:</b> Photo hoặc Pro.</li>
+            <li><b>Lens:</b> 85mm cho bán thân/cận; 35mm nếu toàn thân và không chỗ lùi.</li>
+            <li><b>Đèn:</b> Nên có LED/đèn phụ chiếu mặt.</li>
+            <li><b>Nền:</b> Biển hiệu/đèn xe/đèn đường ở xa phía sau.</li>
+            <li><b>EV:</b> -0.3 đến -0.7 để đèn nền không cháy.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Khi nào dùng Portrait F2.8/F4?</h3>
+          <p class="text-muted">Khi cần ảnh đẹp nhanh để đăng MXH và chấp nhận xử lý thuật toán.</p>
+          <ul>
+            <li><b>F2.8:</b> Bokeh rõ hơn, hợp bán thân/cận mặt.</li>
+            <li><b>F4:</b> Tự nhiên hơn, ít lỗi viền, hợp toàn thân/đêm phố.</li>
+            <li><b>F0.95–F1.4:</b> Rất mờ nhưng dễ giả, dễ lỗi tóc/tay/kính.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="promode">
+      <h2>6. Pro Mode: Thông số nền</h2>
+      <p class="text-muted">Ưu tiên tốc độ (Shutter) đủ nhanh để không nhòe. Ảnh hơi nhiễu (ISO cao) còn cứu được; ảnh rung/nhòe thì khó cứu.</p>
+      
+      <div class="data-table">
+        <table style="width: 100%;">
+          <thead>
+            <tr>
+              <th>Cảnh</th>
+              <th>Lens</th>
+              <th>Shutter (Bắt đầu)</th>
+              <th>ISO</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Người đứng yên (ngày)</td>
+              <td>35 / 85mm</td>
+              <td><b>1/125s</b></td>
+              <td>Auto / Thấp</td>
+              <td class="text-muted">Chạm lấy nét mắt/mặt.</td>
+            </tr>
+            <tr>
+              <td>Người đi bộ</td>
+              <td>35mm</td>
+              <td><b>1/250s</b></td>
+              <td>Auto</td>
+              <td class="text-muted">Street, du lịch, gia đình.</td>
+            </tr>
+            <tr>
+              <td>Trẻ em / thú cưng</td>
+              <td>35 / 85mm</td>
+              <td><b>1/500s</b></td>
+              <td>Auto</td>
+              <td class="text-muted">Chạy nhanh tăng 1/1000s.</td>
+            </tr>
+            <tr>
+              <td>Thể thao ngoài trời</td>
+              <td>85mm</td>
+              <td><b>1/1000s</b></td>
+              <td>Auto</td>
+              <td class="text-muted">Chấp nhận ISO cao.</td>
+            </tr>
+            <tr>
+              <td>Chân dung đêm (đứng)</td>
+              <td>85mm</td>
+              <td><b>1/60 - 1/125s</b></td>
+              <td>Auto</td>
+              <td class="text-muted">Cần đèn phụ chiếu mặt.</td>
+            </tr>
+            <tr>
+              <td>Đêm cảnh tĩnh</td>
+              <td>14 / 35mm</td>
+              <td><b>1/4s - 1s</b></td>
+              <td>Thấp</td>
+              <td class="text-muted">Tựa máy / Tripod.</td>
+            </tr>
+            <tr>
+              <td>Phơi sáng tripod</td>
+              <td>14 / 35mm</td>
+              <td><b>1s - 10s</b></td>
+              <td>50 - 200</td>
+              <td class="text-muted">Phong cảnh đêm, light trail.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="video">
+      <h2>7. Video: Chọn nhanh</h2>
+      <div class="grid-4">
+        <div class="card">
+          <div class="metric-value" style="font-size: 1.5rem; color: var(--primary);">14mm</div>
+          <h3 style="margin-top: 8px;">Vlog đi bộ</h3>
+          <p class="text-muted" style="font-size: 0.85rem; margin:0;">Rộng, dễ chống rung, hợp không gian hẹp. Dùng 4K60.</p>
+        </div>
+        <div class="card">
+          <div class="metric-value" style="font-size: 1.5rem; color: var(--primary);">35mm</div>
+          <h3 style="margin-top: 8px;">Người nói</h3>
+          <p class="text-muted" style="font-size: 0.85rem; margin:0;">Tự nhiên, ít méo mặt hơn 14mm. Dùng 4K60.</p>
+        </div>
+        <div class="card">
+          <div class="metric-value" style="font-size: 1.5rem; color: var(--primary);">85mm</div>
+          <h3 style="margin-top: 8px;">Sân khấu/Xa</h3>
+          <p class="text-muted" style="font-size: 0.85rem; margin:0;">Nén cảnh. 4K60 hoặc 4K120 nếu cần slow motion.</p>
+        </div>
+        <div class="card">
+          <div class="metric-value" style="font-size: 1.5rem; color: var(--primary);">LOG</div>
+          <h3 style="margin-top: 8px;">Hậu kỳ</h3>
+          <p class="text-muted" style="font-size: 0.85rem; margin:0;">10-bit Log để chỉnh màu sau; Dolby Vision để xem ngay.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="checklist">
+      <h2>8. Checklist trước khi bấm máy</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Muốn ảnh thật</h3>
+          <div class="status-badge status-good" style="margin-bottom: 8px;">Photo / Pro</div>
+          <ul>
+            <li>Không Portrait.</li>
+            <li>Không thanh F giả.</li>
+            <li>Ưu tiên 35mm / 85mm.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Muốn chân dung đẹp</h3>
+          <div class="status-badge status-good" style="margin-bottom: 8px; background: #EDE9FE; border-color: #DDD6FE; color: #5B21B6;">85mm</div>
+          <ul>
+            <li>Mẫu gần hơn máy.</li>
+            <li>Nền xa hơn mẫu.</li>
+            <li>Có ánh sáng chiếu mặt.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Muốn an toàn</h3>
+          <div class="status-badge status-warn" style="margin-bottom: 8px;">35mm</div>
+          <ul>
+            <li>Dùng nhiều nhất hằng ngày.</li>
+            <li>Đêm phố, gia đình, đồ ăn.</li>
+            <li>Ít méo hơn 14mm, dễ hơn 85.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 16px; background: var(--primary-light); border-color: var(--primary);">
+        <h3 style="color: var(--primary);">Câu thần chú</h3>
+        <p style="font-size: 1.15rem; font-weight: 600; margin-bottom: 8px;">14mm = Rộng. <br>35mm = Đời thường. <br>85mm = Chân dung, bokeh thật, sân khấu.</p>
+        <p class="text-muted" style="margin: 0; font-size: 0.9rem;">Nếu nghi ngờ máy đang "giả lập": xem có đang ở Portrait không, có thanh F không, và ảnh chụp xong có chỉnh lại mức xóa phông được không.</p>
+      </div>
+    </section>
+
+    <div style="margin-top: 40px; text-align: center;">
+      <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 24px;">💡 Mẹo: Mở file này trên điện thoại rồi dùng "Add to Home Screen" hoặc in ra PDF để xem nhanh khi chụp.</p>
+      <p class="text-muted" style="font-size: 0.8rem; border-top: 1px solid var(--border); padding-top: 16px;">
+        Tổng hợp từ đoạn chat về vivo X200 Ultra: cảm biến, khẩu vật lý, khẩu giả lập, bokeh, Pro mode và tình huống chụp.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
